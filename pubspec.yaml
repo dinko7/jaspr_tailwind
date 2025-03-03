@@ -1,6 +1,7 @@
 name: jaspr_tailwind
 description: Tailwind integration for Jaspr.
 version: 0.3.3
+repository: https://github.com/dinko7/jaspr_tailwind/
 issue_tracker: https://github.com/dinko7/jaspr_tailwind/issues
 documentation: https://docs.jaspr.site/eco/tailwind
 
