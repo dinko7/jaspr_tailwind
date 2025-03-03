@@ -1,0 +1,24 @@
+name: jaspr_tailwind
+description: Tailwind integration for Jaspr.
+version: 0.3.3
+issue_tracker: https://github.com/dinko7/jaspr_tailwind/issues
+documentation: https://docs.jaspr.site/eco/tailwind
+
+topics:
+  - jaspr
+  - web
+  - html
+  - css
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  build: ^2.0.0
+  build_modules: ^5.0.4
+  glob: ^2.1.2
+  path: ^1.8.3
+
+dev_dependencies:
+  build_runner: ^2.4.0
+  lints: ^3.0.0
