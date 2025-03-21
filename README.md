@@ -10,7 +10,7 @@ This package is a first-class tailwind integration for [jaspr](https://github.co
 This package expects tailwind to be installed through the `tailwindcss` command. The recommended way is to use
 the [standalone tailwind cli](https://tailwindcss.com/blog/standalone-cli).
 
-To install it, download the executable for your platform from the [latest release](https://github.com/tailwindlabs/tailwindcss/releases/latest)
+To install it, download the executable for your platform, preferably the [latest release](https://github.com/tailwindlabs/tailwindcss/releases/latest)
 on GitHub and give it executable permissions:
 
 ```shell
@@ -39,10 +39,18 @@ To start, add `jaspr_tailwind` as a dev dependency to your project:
 
 Next add a `styles.tw.css` file inside the `web` directory with the following content:
 
-```css
+If you are using tailwindcss v4, then:
+
+```css title="styles.tw.css"
+@import "tailwindcss";
+```
+
+Or else, if you are using tailwindcss v3, then:
+
+```css title="styles.tw.css"
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities
 ```
 
 Finally, link the generated `styles.css` in your document, or otherwise add it to your website:
