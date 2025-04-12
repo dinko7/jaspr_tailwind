@@ -45,6 +45,24 @@ If you are using tailwindcss v4, then:
 @import "tailwindcss";
 ```
 
+If you are using daisyUI v5 with tailwindcss v4, first add/run the following in your /web directory:
+```shell
+curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
+```
+
+Then update your `styles.tw.css` file to include the daisyUI plugin:
+
+```css title="styles.tw.css"
+@import "tailwindcss";
+@plugin "./daisyui.js";
+
+/* Optional for custom themes – Docs: https://daisyui.com/docs/themes/#how-to-add-a-new-custom-theme */
+@plugin "./daisyui-theme.js"{
+  /* custom theme here */
+}
+```
+
 Or else, if you are using tailwindcss v3, then:
 
 ```css title="styles.tw.css"
