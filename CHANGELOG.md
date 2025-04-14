@@ -1,3 +1,7 @@
+## 0.3.4
+
+- Fixed issue when using Pub Workspaces.
+
 ## 0.3.3
 
 - Transfer ownership
