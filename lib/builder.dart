@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:build/build.dart';
@@ -20,15 +19,6 @@ class TailwindBuilder implements Builder {
     await scratchSpace.ensureAssets({buildStep.inputId}, buildStep);
 
     var outputId = buildStep.inputId.changeExtension('').changeExtension('.css');
-
-    var packageFile = File('.dart_tool/package_config.json');
-    var packageJson = jsonDecode(await packageFile.readAsString());
-
-    var packageConfig = (packageJson['packages'] as List?)?.where((p) => p['name'] == 'jaspr_tailwind').firstOrNull;
-    if (packageConfig == null) {
-      print("Cannot find 'jaspr_tailwind' in package config.");
-      return;
-    }
 
     // in order to rebuild when source files change
     var assets = await buildStep.findAssets(Glob('{lib,web}/**.dart')).toList();
