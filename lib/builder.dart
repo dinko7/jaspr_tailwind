@@ -30,6 +30,17 @@ class TailwindBuilder implements Builder {
       return;
     }
 
+    var nodeModulesInTemp = p.join(
+      scratchSpace.tempDir.path,
+      'node_modules',
+    );
+    if (!(await Directory(nodeModulesInTemp).exists())) {
+      await Link(nodeModulesInTemp).create(p.join(
+        Directory.current.path,
+        'node_modules',
+      ));
+    }
+
     // in order to rebuild when source files change
     var assets = await buildStep.findAssets(Glob('{lib,web}/**.dart')).toList();
     await Future.wait(assets.map((a) => buildStep.canRead(a)));
