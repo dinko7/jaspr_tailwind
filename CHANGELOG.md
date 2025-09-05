@@ -1,3 +1,7 @@
+## 0.4.0
+
+- Updated dependencies to support the latest version of Jaspr.
+
 ## 0.3.3
 
 - Transfer ownership
