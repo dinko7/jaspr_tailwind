@@ -1,7 +1,10 @@
+<<<<<<< HEAD
 ## 0.4.0
 
 - Updated dependencies to support the latest version of Jaspr.
 
+=======
+>>>>>>> 5fff142fdb5c06a6e74449048a7ab20230f770d9
 ## 0.3.3
 
 - Transfer ownership
