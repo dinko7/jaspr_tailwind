@@ -19,12 +19,15 @@ class TailwindBuilder implements Builder {
 
     await scratchSpace.ensureAssets({buildStep.inputId}, buildStep);
 
-    var outputId = buildStep.inputId.changeExtension('').changeExtension('.css');
+    var outputId =
+        buildStep.inputId.changeExtension('').changeExtension('.css');
 
     var packageFile = File('.dart_tool/package_config.json');
     var packageJson = jsonDecode(await packageFile.readAsString());
 
-    var packageConfig = (packageJson['packages'] as List?)?.where((p) => p['name'] == 'jaspr_tailwind').firstOrNull;
+    var packageConfig = (packageJson['packages'] as List?)
+        ?.where((p) => p['name'] == 'jaspr_tailwind')
+        .firstOrNull;
     if (packageConfig == null) {
       print("Cannot find 'jaspr_tailwind' in package config.");
       return;
@@ -44,13 +47,16 @@ class TailwindBuilder implements Builder {
         scratchSpace.fileFor(buildStep.inputId).path,
         '--output',
         scratchSpace.fileFor(outputId).path.toPosix(),
-        if (options.config.containsKey('tailwindcss')) options.config['tailwindcss'],
+        if (options.config.containsKey('tailwindcss'))
+          options.config['tailwindcss'],
         if (hasCustomConfig) ...[
           '--config',
           p.join(Directory.current.path, 'tailwind.config.js').toPosix(),
         ] else ...[
           '--content',
-          p.join(Directory.current.path, '{lib,web}', '**', '*.dart').toPosix(true),
+          p
+              .join(Directory.current.path, '{lib,web}', '**', '*.dart')
+              .toPosix(true),
         ],
       ],
       runInShell: true,
