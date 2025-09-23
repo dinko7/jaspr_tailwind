@@ -1,5 +1,4 @@
-## 0.4.0
-
+## 0.3.4
 - Updated dependencies to support the latest version of Jaspr.
 
 ## 0.3.3
