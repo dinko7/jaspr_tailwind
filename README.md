@@ -53,6 +53,16 @@ Or else, if you are using tailwindcss v3, then:
 @tailwind utilities
 ```
 
+If you are using any local dependencies you will need to use absolute paths.
+For example,
+```css
+@import "./daisyui.js";
+```
+becomes;
+```@css
+@import "/home/user/jaspr_project/web/daisyui.js"
+```
+
 Finally, link the generated `styles.css` in your document, or otherwise add it to your website:
 
 In **static** or **server** mode:

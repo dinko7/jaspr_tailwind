@@ -40,7 +40,7 @@ class TailwindBuilder implements Builder {
     var configFile = File('tailwind.config.js');
     var hasCustomConfig = await configFile.exists();
 
-    await Process.run(
+    final runTailwind = await Process.run(
       'tailwindcss',
       [
         '--input',
@@ -61,6 +61,14 @@ class TailwindBuilder implements Builder {
       ],
       runInShell: true,
     );
+
+    final stderrLines = runTailwind.stderr.toString().trim().split('\n');
+    final lastLine = stderrLines.isNotEmpty ? stderrLines.last : '';
+    if (lastLine.contains('Done')) {
+      log.info(runTailwind.stderr);
+    } else {
+      log.severe(runTailwind.stderr);
+    }
 
     await scratchSpace.copyOutput(outputId, buildStep);
   }
