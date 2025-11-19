@@ -1,3 +1,6 @@
+## 0.3.5
+- fix: package dependecy check failing for projects that are part of a dart workspace
+
 ## 0.3.4
 - Updated dependencies to support the latest version of Jaspr.
 
