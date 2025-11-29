@@ -1,10 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
 import 'package:build/build.dart';
-import 'package:build_modules/build_modules.dart';
 import 'package:glob/glob.dart';
-import 'package:path/path.dart' as p;
 
 Builder buildStylesheet(BuilderOptions options) => TailwindBuilder(options);
 
@@ -15,19 +14,13 @@ class TailwindBuilder implements Builder {
 
   @override
   Future<void> build(BuildStep buildStep) async {
-    var scratchSpace = await buildStep.fetchResource(scratchSpaceResource);
-
-    await scratchSpace.ensureAssets({buildStep.inputId}, buildStep);
-
-    var outputId =
-        buildStep.inputId.changeExtension('').changeExtension('.css');
+    var outputId = buildStep.inputId.changeExtension('').changeExtension('.css');
 
     final jasprTailwindUri = await Isolate.resolvePackageUri(
       Uri.parse('package:jaspr_tailwind/builder.dart'),
     );
     if (jasprTailwindUri == null) {
-      log.severe(
-          "Cannot find 'jaspr_tailwind' package. Make sure it's a dependency.");
+      log.severe("Cannot find 'jaspr_tailwind' package. Make sure it's a dependency.");
       return;
     }
 
@@ -37,42 +30,45 @@ class TailwindBuilder implements Builder {
 
     var configFile = File('tailwind.config.js');
     var hasCustomConfig = await configFile.exists();
+    if (hasCustomConfig) {
+      log.warning('tailwind.config.js is ignored in tailwind 4 and later. '
+          'See: https://tailwindcss.com/blog/tailwindcss-v4#css-first-configuration');
+    }
 
-    var result = await Process.run(
+    var runResult = await Process.run(
       'tailwindcss',
       [
         '--input',
-        scratchSpace.fileFor(buildStep.inputId).path,
+        buildStep.inputId.path.toPosix(),
         '--output',
-        scratchSpace.fileFor(outputId).path.toPosix(),
-        if (options.config.containsKey('tailwindcss'))
-          options.config['tailwindcss'],
-        if (hasCustomConfig) ...[
-          '--config',
-          p.join(Directory.current.path, 'tailwind.config.js').toPosix(),
-        ] else ...[
-          '--content',
-          p
-              .join(Directory.current.path, '{lib,web}', '**', '*.dart')
-              .toPosix(true),
-        ],
+        outputId.path.toPosix(),
+        if (options.config.containsKey('tailwindcss')) options.config['tailwindcss'],
       ],
       runInShell: true,
+      stdoutEncoding: Utf8Codec(),
+      stderrEncoding: Utf8Codec(),
     );
 
-    var stdout = result.stdout.toString();
-    if (stdout.isNotEmpty) {
-      log.info(stdout);
+    // Log output lines, and detect error messages
+    var stdout = runResult.stdout.toString();
+    var stderr = runResult.stderr.toString();
+    var lines = [
+      if (stdout.isNotEmpty) ...stdout.split('\n'),
+      if (stderr.isNotEmpty) ...stderr.split('\n'),
+    ].toList();
+    var nonErrorLines = lines.where((line) => !line.startsWith('Error:')).toList();
+    if (nonErrorLines.isNotEmpty) {
+      log.info(nonErrorLines.join('\n'));
     }
-    var stderr = result.stderr.toString();
-    if (stderr.isNotEmpty) {
-      log.warning(stderr);
-    }
-    if (result.exitCode != 0) {
-      throw Exception('tailwindcss build failed with exit code ${result.exitCode}');
+    var errorLines = lines.where((line) => line.startsWith('Error:')).toList();
+    if (errorLines.isNotEmpty) {
+      log.severe(errorLines.join('\n'));
     }
 
-    await scratchSpace.copyOutput(outputId, buildStep);
+    // Throw an exception if the tailwindcss process failed
+    if (runResult.exitCode != 0) {
+      throw Exception('tailwindcss build failed with exit code ${runResult.exitCode}');
+    }
   }
 
   @override
