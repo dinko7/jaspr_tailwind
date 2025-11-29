@@ -38,7 +38,7 @@ class TailwindBuilder implements Builder {
     var configFile = File('tailwind.config.js');
     var hasCustomConfig = await configFile.exists();
 
-    await Process.run(
+    var result = await Process.run(
       'tailwindcss',
       [
         '--input',
@@ -59,6 +59,18 @@ class TailwindBuilder implements Builder {
       ],
       runInShell: true,
     );
+
+    var stdout = result.stdout.toString();
+    if (stdout.isNotEmpty) {
+      log.info(stdout);
+    }
+    var stderr = result.stderr.toString();
+    if (stderr.isNotEmpty) {
+      log.warning(stderr);
+    }
+    if (result.exitCode != 0) {
+      throw Exception('tailwindcss build failed with exit code ${result.exitCode}');
+    }
 
     await scratchSpace.copyOutput(outputId, buildStep);
   }
