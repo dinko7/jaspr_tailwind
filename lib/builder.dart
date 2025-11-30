@@ -1,10 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
 import 'package:build/build.dart';
-import 'package:build_modules/build_modules.dart';
-import 'package:glob/glob.dart';
-import 'package:path/path.dart' as p;
 
 Builder buildStylesheet(BuilderOptions options) => TailwindBuilder(options);
 
@@ -13,54 +11,81 @@ class TailwindBuilder implements Builder {
 
   TailwindBuilder(this.options);
 
+  Future<ProcessResult> _runTailwind(List<String> args) => Process.run(
+        'tailwindcss',
+        args,
+        runInShell: true,
+        stdoutEncoding: Utf8Codec(),
+        stderrEncoding: Utf8Codec(),
+      );
+
   @override
   Future<void> build(BuildStep buildStep) async {
-    var scratchSpace = await buildStep.fetchResource(scratchSpaceResource);
-
-    await scratchSpace.ensureAssets({buildStep.inputId}, buildStep);
-
-    var outputId =
-        buildStep.inputId.changeExtension('').changeExtension('.css');
-
     final jasprTailwindUri = await Isolate.resolvePackageUri(
       Uri.parse('package:jaspr_tailwind/builder.dart'),
     );
     if (jasprTailwindUri == null) {
-      log.severe(
-          "Cannot find 'jaspr_tailwind' package. Make sure it's a dependency.");
-      return;
+      throw Exception("Cannot find 'jaspr_tailwind' package. Make sure it's a dependency.");
     }
 
-    // in order to rebuild when source files change
-    var assets = await buildStep.findAssets(Glob('{lib,web}/**.dart')).toList();
-    await Future.wait(assets.map((a) => buildStep.canRead(a)));
+    // Check that tailwindcss CLI is available, and get the help output
+    var helpResult = await _runTailwind(['--help']);
+    if (helpResult.exitCode != 0) {
+      throw Exception('tailwindcss cli not found in \$PATH. Please follow the instructions here: '
+          'https://docs.jaspr.site/eco/tailwind');
+    }
 
-    var configFile = File('tailwind.config.js');
-    var hasCustomConfig = await configFile.exists();
+    // Extract the major version number between 'v' and '.' from the help output
+    // (the first line looks like: "≈ tailwindcss vX.Y.Z")
+    var versionMatch = RegExp(r'v(\d+)\.').firstMatch(helpResult.stdout);
+    if (versionMatch == null) {
+      throw Exception('Could not determine tailwindcss version from --help output.');
+    }
+    var majorVersion = int.parse(versionMatch.group(1)!);
 
-    await Process.run(
-      'tailwindcss',
+    // If there is a legacy config file with majorVersion >= 4, warn that it is ignored
+    if (majorVersion >= 4) {
+      var configFile = File('tailwind.config.js');
+      var hasConfigFile = await configFile.exists();
+      if (hasConfigFile) {
+        log.warning('tailwind.config.js is ignored in tailwind 4 and later. '
+            'See: https://tailwindcss.com/blog/tailwindcss-v4#css-first-configuration');
+      }
+    }
+
+    // Run tailwindcss to produce <filename>.css from <filename>.tw.css
+    var inputPath = buildStep.inputId.path.toPosix();
+    var outputPath = buildStep.inputId.changeExtension('').changeExtension('.css').path.toPosix();
+    var runResult = await _runTailwind(
       [
         '--input',
-        scratchSpace.fileFor(buildStep.inputId).path,
+        inputPath,
         '--output',
-        scratchSpace.fileFor(outputId).path.toPosix(),
-        if (options.config.containsKey('tailwindcss'))
-          options.config['tailwindcss'],
-        if (hasCustomConfig) ...[
-          '--config',
-          p.join(Directory.current.path, 'tailwind.config.js').toPosix(),
-        ] else ...[
-          '--content',
-          p
-              .join(Directory.current.path, '{lib,web}', '**', '*.dart')
-              .toPosix(true),
-        ],
+        outputPath,
+        if (options.config.containsKey('tailwindcss')) options.config['tailwindcss'],
       ],
-      runInShell: true,
     );
 
-    await scratchSpace.copyOutput(outputId, buildStep);
+    // Log output lines, and detect error messages
+    var stdout = runResult.stdout.toString();
+    var stderr = runResult.stderr.toString();
+    var lines = [
+      if (stdout.isNotEmpty) ...stdout.split('\n'),
+      if (stderr.isNotEmpty) ...stderr.split('\n'),
+    ].toList();
+    var nonErrorLines = lines.where((line) => !line.startsWith('Error:')).toList();
+    if (nonErrorLines.isNotEmpty) {
+      log.info(nonErrorLines.join('\n'));
+    }
+    var errorLines = lines.where((line) => line.startsWith('Error:')).toList();
+    if (errorLines.isNotEmpty) {
+      log.severe(errorLines.join('\n'));
+    }
+
+    // Throw an exception if the tailwindcss process failed
+    if (runResult.exitCode != 0) {
+      throw Exception('tailwindcss build failed with exit code ${runResult.exitCode}');
+    }
   }
 
   @override
