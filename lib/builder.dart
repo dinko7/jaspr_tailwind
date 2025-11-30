@@ -46,8 +46,8 @@ class TailwindBuilder implements Builder {
     // If there is a legacy config file with majorVersion >= 4, warn that it is ignored
     if (majorVersion >= 4) {
       var configFile = File('tailwind.config.js');
-      var hasCustomConfig = await configFile.exists();
-      if (hasCustomConfig) {
+      var hasConfigFile = await configFile.exists();
+      if (hasConfigFile) {
         log.warning('tailwind.config.js is ignored in tailwind 4 and later. '
             'See: https://tailwindcss.com/blog/tailwindcss-v4#css-first-configuration');
       }
