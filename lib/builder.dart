@@ -12,41 +12,63 @@ class TailwindBuilder implements Builder {
 
   TailwindBuilder(this.options);
 
+  Future<ProcessResult> _runTailwind(List<String> args) => Process.run(
+        'tailwindcss',
+        args,
+        runInShell: true,
+        stdoutEncoding: Utf8Codec(),
+        stderrEncoding: Utf8Codec(),
+      );
+
   @override
   Future<void> build(BuildStep buildStep) async {
-    var outputId = buildStep.inputId.changeExtension('').changeExtension('.css');
-
     final jasprTailwindUri = await Isolate.resolvePackageUri(
       Uri.parse('package:jaspr_tailwind/builder.dart'),
     );
     if (jasprTailwindUri == null) {
-      log.severe("Cannot find 'jaspr_tailwind' package. Make sure it's a dependency.");
-      return;
+      throw Exception("Cannot find 'jaspr_tailwind' package. Make sure it's a dependency.");
     }
 
     // in order to rebuild when source files change
     var assets = await buildStep.findAssets(Glob('{lib,web}/**.dart')).toList();
     await Future.wait(assets.map((a) => buildStep.canRead(a)));
 
-    var configFile = File('tailwind.config.js');
-    var hasCustomConfig = await configFile.exists();
-    if (hasCustomConfig) {
-      log.warning('tailwind.config.js is ignored in tailwind 4 and later. '
-          'See: https://tailwindcss.com/blog/tailwindcss-v4#css-first-configuration');
+    // Check that tailwindcss CLI is available, and get the help output
+    var helpResult = await _runTailwind(['--help']);
+    if (helpResult.exitCode != 0) {
+      throw Exception('tailwindcss cli not found in \$PATH. Please follow the instructions here: '
+          'https://docs.jaspr.site/eco/tailwind');
     }
 
-    var runResult = await Process.run(
-      'tailwindcss',
+    // Extract the major version number between 'v' and '.' from the help output
+    // (the first line looks like: "≈ tailwindcss vX.Y.Z")
+    var versionMatch = RegExp(r'v(\d+)\.').firstMatch(helpResult.stdout);
+    if (versionMatch == null) {
+      throw Exception('Could not determine tailwindcss version from --help output.');
+    }
+    var majorVersion = int.parse(versionMatch.group(1)!);
+
+    // If there is a legacy config file with majorVersion >= 4, warn that it is ignored
+    if (majorVersion >= 4) {
+      var configFile = File('tailwind.config.js');
+      var hasCustomConfig = await configFile.exists();
+      if (hasCustomConfig) {
+        log.warning('tailwind.config.js is ignored in tailwind 4 and later. '
+            'See: https://tailwindcss.com/blog/tailwindcss-v4#css-first-configuration');
+      }
+    }
+
+    // Run tailwindcss to produce <filename>.css from <filename>.tw.css
+    var inputPath = buildStep.inputId.path.toPosix();
+    var outputPath = buildStep.inputId.changeExtension('').changeExtension('.css').path.toPosix();
+    var runResult = await _runTailwind(
       [
         '--input',
-        buildStep.inputId.path.toPosix(),
+        inputPath,
         '--output',
-        outputId.path.toPosix(),
+        outputPath,
         if (options.config.containsKey('tailwindcss')) options.config['tailwindcss'],
       ],
-      runInShell: true,
-      stdoutEncoding: Utf8Codec(),
-      stderrEncoding: Utf8Codec(),
     );
 
     // Log output lines, and detect error messages
