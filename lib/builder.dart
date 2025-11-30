@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:build/build.dart';
-import 'package:glob/glob.dart';
 
 Builder buildStylesheet(BuilderOptions options) => TailwindBuilder(options);
 
@@ -28,10 +27,6 @@ class TailwindBuilder implements Builder {
     if (jasprTailwindUri == null) {
       throw Exception("Cannot find 'jaspr_tailwind' package. Make sure it's a dependency.");
     }
-
-    // in order to rebuild when source files change
-    var assets = await buildStep.findAssets(Glob('{lib,web}/**.dart')).toList();
-    await Future.wait(assets.map((a) => buildStep.canRead(a)));
 
     // Check that tailwindcss CLI is available, and get the help output
     var helpResult = await _runTailwind(['--help']);
